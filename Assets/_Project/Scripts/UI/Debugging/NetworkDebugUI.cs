@@ -1,30 +1,33 @@
 using Unity.Multiplayer.Tools.NetStatsMonitor;
-//using Unity.Multiplayer.Tools.RuntimeNetStatsMonitor;
 using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.UI;
+using TMPro; // TextMeshPro namespace
 
 namespace MultiplayerShooter.UI
 {
     /// <summary>
     /// Network debugging UI showing ping, packet loss, and connection info
-    /// Essential for development and portfolio demonstration
+    /// Uses TextMeshProUGUI for modern UI rendering
     /// </summary>
     public class NetworkDebugUI : MonoBehaviour
     {
         [Header("UI References")]
-        [SerializeField] private Text m_PingText;
-        [SerializeField] private Text m_PacketLossText;
-        [SerializeField] private Text m_PlayerCountText;
-        [SerializeField] private Text m_NetworkStatusText;
+        [SerializeField] private TextMeshProUGUI m_PingText;
+        [SerializeField] private TextMeshProUGUI m_PacketLossText;
+        [SerializeField] private TextMeshProUGUI m_PlayerCountText;
+        [SerializeField] private TextMeshProUGUI m_NetworkStatusText;
+        [SerializeField] private TextMeshProUGUI m_ServerTickText;
+        [SerializeField] private TextMeshProUGUI m_ClientIdText;
         [SerializeField] private GameObject m_DebugPanel;
 
         [Header("Settings")]
         [SerializeField] private bool m_ShowOnStart = true;
         [SerializeField] private KeyCode m_ToggleKey = KeyCode.F1;
+        [SerializeField] private float m_UpdateInterval = 0.1f; // Update UI every 100ms
 
         private RuntimeNetStatsMonitor m_NetworkStatsMonitor;
         private bool m_IsVisible;
+        private float m_LastUpdateTime;
 
         void Start()
         {
@@ -39,9 +42,10 @@ namespace MultiplayerShooter.UI
                 ToggleDebugUI();
             }
 
-            if (m_IsVisible)
+            if (m_IsVisible && Time.time - m_LastUpdateTime > m_UpdateInterval)
             {
                 UpdateDebugInfo();
+                m_LastUpdateTime = Time.time;
             }
         }
 
@@ -55,15 +59,10 @@ namespace MultiplayerShooter.UI
                 DontDestroyOnLoad(debugObject);
             }
 
-            // Configure custom stats
-            //m_NetworkStatsMonitor.AddCustomValue("Player Count", () =>
-            //    NetworkManager.Singleton != null ? NetworkManager.Singleton.ConnectedClients.Count : 0);
-
-            //m_NetworkStatsMonitor.AddCustomValue("Server Tick", () =>
-            //    NetworkManager.Singleton != null ? NetworkManager.Singleton.ServerTime.Tick : 0);
-
-            //m_NetworkStatsMonitor.AddCustomValue("Round Trip Time", () =>
-            //    NetworkManager.Singleton != null ? NetworkManager.Singleton.LocalTime.TimeAsFloat : 0f);
+            // Configure position and style
+            m_NetworkStatsMonitor.Position = RuntimeNetStatsMonitor.DisplayPosition.TopLeft;
+            m_NetworkStatsMonitor.MaxRefreshRate = 10f; // 10 updates per second
+            m_NetworkStatsMonitor.Visible = m_ShowOnStart;
         }
 
         private void UpdateDebugInfo()
@@ -73,33 +72,91 @@ namespace MultiplayerShooter.UI
             // Update ping information
             if (m_PingText != null)
             {
-                float rtt = NetworkManager.Singleton.LocalTime.TimeAsFloat;
-                m_PingText.text = $"Ping: {(rtt * 1000):F0}ms";
+                if (NetworkManager.Singleton.IsClient && !NetworkManager.Singleton.IsServer)
+                {
+                    // Calculate approximate RTT for clients
+                    float localTime = NetworkManager.Singleton.LocalTime.TimeAsFloat;
+                    float serverTime = NetworkManager.Singleton.ServerTime.TimeAsFloat;
+                    float rtt = Mathf.Abs(serverTime - localTime) * 2f; // Approximate RTT
+                    m_PingText.text = $"Ping: {(rtt * 1000):F0}ms";
+                }
+                else if (NetworkManager.Singleton.IsServer)
+                {
+                    m_PingText.text = "Ping: Host";
+                }
+                else
+                {
+                    m_PingText.text = "Ping: N/A";
+                }
             }
 
             // Update player count
             if (m_PlayerCountText != null)
             {
                 int playerCount = NetworkManager.Singleton.ConnectedClients.Count;
-                m_PlayerCountText.text = $"Players: {playerCount}";
+                int maxPlayers = 8; // You can make this configurable
+                m_PlayerCountText.text = $"Players: {playerCount}/{maxPlayers}";
             }
 
             // Update network status
             if (m_NetworkStatusText != null)
             {
                 string status = "Disconnected";
-                if (NetworkManager.Singleton.IsServer)
+                Color statusColor = Color.red;
+
+                if (NetworkManager.Singleton.IsHost)
+                {
+                    status = "Host";
+                    statusColor = Color.green;
+                }
+                else if (NetworkManager.Singleton.IsServer)
+                {
                     status = "Server";
+                    statusColor = Color.cyan;
+                }
                 else if (NetworkManager.Singleton.IsClient)
+                {
                     status = "Client";
+                    statusColor = Color.yellow;
+                }
 
                 m_NetworkStatusText.text = $"Status: {status}";
+                m_NetworkStatusText.color = statusColor;
+            }
+
+            // Update server tick
+            if (m_ServerTickText != null)
+            {
+                if (NetworkManager.Singleton.IsConnectedClient)
+                {
+                    uint serverTick = NetworkManager.Singleton.ServerTime.Tick;
+                    m_ServerTickText.text = $"Server Tick: {serverTick}";
+                }
+                else
+                {
+                    m_ServerTickText.text = "Server Tick: N/A";
+                }
+            }
+
+            // Update client ID
+            if (m_ClientIdText != null)
+            {
+                if (NetworkManager.Singleton.IsConnectedClient)
+                {
+                    ulong clientId = NetworkManager.Singleton.LocalClientId;
+                    m_ClientIdText.text = $"Client ID: {clientId}";
+                }
+                else
+                {
+                    m_ClientIdText.text = "Client ID: N/A";
+                }
             }
 
             // Update packet loss (simplified)
             if (m_PacketLossText != null)
             {
-                // In a real implementation, you'd calculate actual packet loss
+                // In a real implementation, you'd track sent vs received packets
+                // For now, we'll show a placeholder
                 m_PacketLossText.text = "Packet Loss: 0%";
             }
         }
@@ -120,8 +177,15 @@ namespace MultiplayerShooter.UI
 
             if (m_NetworkStatsMonitor != null)
             {
-                m_NetworkStatsMonitor.gameObject.SetActive(visible);
+                m_NetworkStatsMonitor.Visible = visible;
             }
+        }
+
+        // Optional: Add method to update custom metrics if needed
+        public void UpdateCustomMetric(string metricName, float value)
+        {
+            // This can be used to display custom game-specific metrics
+            // You would need additional UI elements to display these
         }
     }
 }

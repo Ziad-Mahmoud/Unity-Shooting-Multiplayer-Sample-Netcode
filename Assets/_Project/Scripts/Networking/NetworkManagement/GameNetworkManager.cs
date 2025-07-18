@@ -27,7 +27,7 @@ namespace MultiplayerShooter.Infrastructure
 
             // Configure network settings
             networkManager.NetworkConfig.PlayerPrefab = m_PlayerPrefab;
-            networkManager.NetworkConfig.ProtocolVersion = 1;
+            networkManager.NetworkConfig.ProtocolVersion = 1; // ushort in Unity 6.1
             networkManager.NetworkConfig.TickRate = 60;
             networkManager.NetworkConfig.ClientConnectionBufferTimeout = (int)m_ConnectionTimeout;
             networkManager.NetworkConfig.EnableSceneManagement = true;

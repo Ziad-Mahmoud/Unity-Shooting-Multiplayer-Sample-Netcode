@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace MultiplayerShooter.Gameplay
 {
@@ -30,6 +31,12 @@ namespace MultiplayerShooter.Gameplay
         private Queue<InputCommand> m_InputBuffer = new Queue<InputCommand>();
         private uint m_CurrentInputSequence = 0;
 
+        // Input System
+        private PlayerInputActions m_InputActions;
+        private Vector2 m_MoveInput;
+        private Vector2 m_LookInput;
+        private bool m_JumpInput;
+
         // Components
         private Rigidbody m_Rigidbody;
         private Collider m_Collider;
@@ -51,6 +58,74 @@ namespace MultiplayerShooter.Gameplay
                 serializer.SerializeValue(ref jump);
                 serializer.SerializeValue(ref timestamp);
             }
+        }
+        private void Awake()
+        {
+            // Initialize Input System
+            m_InputActions = new PlayerInputActions();
+        }
+
+        private void OnEnable()
+        {
+            if (!IsOwner) return;
+
+            // Enable input actions and subscribe to events
+            m_InputActions.Enable();
+
+            // Subscribe to input events
+            m_InputActions.Player.Move.performed += OnMovePerformed;
+            m_InputActions.Player.Move.canceled += OnMoveCanceled;
+            m_InputActions.Player.Look.performed += OnLookPerformed;
+            m_InputActions.Player.Look.canceled += OnLookCanceled;
+            m_InputActions.Player.Jump.performed += OnJumpPerformed;
+            m_InputActions.Player.Jump.canceled += OnJumpCanceled;
+        }
+
+        private void OnDisable()
+        {
+            if (!IsOwner) return;
+
+            // Unsubscribe from input events
+            m_InputActions.Player.Move.performed -= OnMovePerformed;
+            m_InputActions.Player.Move.canceled -= OnMoveCanceled;
+            m_InputActions.Player.Look.performed -= OnLookPerformed;
+            m_InputActions.Player.Look.canceled -= OnLookCanceled;
+            m_InputActions.Player.Jump.performed -= OnJumpPerformed;
+            m_InputActions.Player.Jump.canceled -= OnJumpCanceled;
+
+            // Disable input actions
+            m_InputActions.Disable();
+        }
+
+        // Input callbacks
+        private void OnMovePerformed(InputAction.CallbackContext context)
+        {
+            m_MoveInput = context.ReadValue<Vector2>();
+        }
+
+        private void OnMoveCanceled(InputAction.CallbackContext context)
+        {
+            m_MoveInput = Vector2.zero;
+        }
+
+        private void OnLookPerformed(InputAction.CallbackContext context)
+        {
+            m_LookInput = context.ReadValue<Vector2>();
+        }
+
+        private void OnLookCanceled(InputAction.CallbackContext context)
+        {
+            m_LookInput = Vector2.zero;
+        }
+
+        private void OnJumpPerformed(InputAction.CallbackContext context)
+        {
+            m_JumpInput = true;
+        }
+
+        private void OnJumpCanceled(InputAction.CallbackContext context)
+        {
+            m_JumpInput = false;
         }
 
         public override void OnNetworkSpawn()
@@ -88,46 +163,43 @@ namespace MultiplayerShooter.Gameplay
                 HandleServerMovement();
             }
         }
-
         private void HandleServerMovement()
         {
-            throw new NotImplementedException();
+            // Update network variables with current transform state
+            m_NetworkPosition.Value = transform.position;
+            m_NetworkRotation.Value = transform.rotation;
+            m_IsGrounded.Value = CheckGrounded();
         }
 
         private void HandleClientInput()
         {
+            // Convert 2D input to 3D movement direction
+            Vector3 moveDirection = new Vector3(m_MoveInput.x, 0, m_MoveInput.y);
+
             // Gather input
             var input = new InputCommand
             {
                 sequence = m_CurrentInputSequence++,
-                moveDirection = GetInputDirection(),
-                rotationY = GetInputRotation(),
-                jump = Input.GetKey(KeyCode.Space),
+                moveDirection = moveDirection.normalized,
+                rotationY = m_LookInput.x,
+                jump = m_JumpInput,
                 timestamp = Time.time
             };
 
             // Store input for reconciliation
             m_InputBuffer.Enqueue(input);
 
+            // Limit input buffer size
+            while (m_InputBuffer.Count > 60) // Store last 1 second at 60 tick rate
+            {
+                m_InputBuffer.Dequeue();
+            }
+
             // Apply movement immediately for prediction
             ApplyMovement(input);
 
             // Send input to server
             SendInputToServerRpc(input);
-        }
-
-        private Vector3 GetInputDirection()
-        {
-            float horizontal = Input.GetAxis("Horizontal");
-            float vertical = Input.GetAxis("Vertical");
-
-            Vector3 direction = new Vector3(horizontal, 0, vertical);
-            return direction.normalized;
-        }
-
-        private float GetInputRotation()
-        {
-            return Input.GetAxis("Mouse X");
         }
 
         [ServerRpc]
@@ -147,13 +219,17 @@ namespace MultiplayerShooter.Gameplay
 
         private bool ValidateInput(InputCommand input)
         {
-            // Server-side input validation
-            // Check for reasonable movement values, rate limiting, etc.
-            float maxMoveSpeed = m_MoveSpeed * 1.1f; // Allow some tolerance
-
-            if (input.moveDirection.magnitude > maxMoveSpeed)
+            // Check if movement direction is within valid range (normalized vector)
+            if (input.moveDirection.magnitude > 1.1f) // Allow 10% tolerance for floating point errors
             {
                 Debug.LogWarning($"Invalid move input from client: {input.moveDirection.magnitude}");
+                return false;
+            }
+
+            // Additional validation: check for unreasonable rotation values
+            if (Mathf.Abs(input.rotationY) > 100f) // Arbitrary max rotation speed
+            {
+                Debug.LogWarning($"Invalid rotation input from client: {input.rotationY}");
                 return false;
             }
 
@@ -200,7 +276,11 @@ namespace MultiplayerShooter.Gameplay
             {
                 if (IsServer)
                 {
-                    m_Rigidbody.linearVelocity = new Vector3(m_Rigidbody.linearVelocity.x, m_JumpForce, m_Rigidbody.linearVelocity.z);
+                    m_Rigidbody.linearVelocity = new Vector3(
+                        m_Rigidbody.linearVelocity.x,
+                        m_JumpForce,
+                        m_Rigidbody.linearVelocity.z
+                    );
                 }
             }
         }
@@ -231,6 +311,7 @@ namespace MultiplayerShooter.Gameplay
             }
         }
 
+
         private void OnServerRotationChanged(Quaternion previousValue, Quaternion newValue)
         {
             if (!IsOwner)
@@ -238,6 +319,11 @@ namespace MultiplayerShooter.Gameplay
                 // Apply server rotation to non-owners
                 transform.rotation = newValue;
             }
+        }
+
+        public override void OnDestroy()
+        {
+            m_InputActions?.Dispose();
         }
     }
 }
