@@ -60,7 +60,7 @@ namespace MultiplayerShooter.UI
             }
 
             // Configure position and style
-            m_NetworkStatsMonitor.Position = RuntimeNetStatsMonitor.DisplayPosition.TopLeft;
+            //m_NetworkStatsMonitor.Position = RuntimeNetStatsMonitor.DisplayPosition.TopLeft;
             m_NetworkStatsMonitor.MaxRefreshRate = 10f; // 10 updates per second
             m_NetworkStatsMonitor.Visible = m_ShowOnStart;
         }
@@ -129,7 +129,7 @@ namespace MultiplayerShooter.UI
             {
                 if (NetworkManager.Singleton.IsConnectedClient)
                 {
-                    uint serverTick = NetworkManager.Singleton.ServerTime.Tick;
+                    int serverTick = NetworkManager.Singleton.ServerTime.Tick;
                     m_ServerTickText.text = $"Server Tick: {serverTick}";
                 }
                 else
