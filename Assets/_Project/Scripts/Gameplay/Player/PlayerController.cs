@@ -36,12 +36,13 @@ namespace MultiplayerShooter.Gameplay
         private Vector2 m_MoveInput;
         private Vector2 m_LookInput;
         private bool m_JumpInput;
+        private bool m_hasInputChanged;
 
         // Components
         private Rigidbody m_Rigidbody;
         private Collider m_Collider;
 
-        [System.Serializable]
+        [Serializable]
         private struct InputCommand : INetworkSerializable
         {
             public uint sequence;
@@ -101,31 +102,37 @@ namespace MultiplayerShooter.Gameplay
         private void OnMovePerformed(InputAction.CallbackContext context)
         {
             m_MoveInput = context.ReadValue<Vector2>();
+            MarkInputAsChanged();
         }
 
         private void OnMoveCanceled(InputAction.CallbackContext context)
         {
             m_MoveInput = Vector2.zero;
+            MarkInputAsChanged();
         }
 
         private void OnLookPerformed(InputAction.CallbackContext context)
         {
             m_LookInput = context.ReadValue<Vector2>();
+            MarkInputAsChanged();
         }
 
         private void OnLookCanceled(InputAction.CallbackContext context)
         {
             m_LookInput = Vector2.zero;
+            MarkInputAsChanged();
         }
 
         private void OnJumpPerformed(InputAction.CallbackContext context)
         {
             m_JumpInput = true;
+            MarkInputAsChanged();
         }
 
         private void OnJumpCanceled(InputAction.CallbackContext context)
         {
             m_JumpInput = false;
+            MarkInputAsChanged();
         }
 
         public override void OnNetworkSpawn()
@@ -150,9 +157,10 @@ namespace MultiplayerShooter.Gameplay
 
         void Update()
         {
-            if (IsOwner)
+            if (IsOwner && m_hasInputChanged)
             {
                 HandleClientInput();
+                m_hasInputChanged = false; // Reset input change flag
             }
         }
 
@@ -202,18 +210,9 @@ namespace MultiplayerShooter.Gameplay
             SendInputToServerRpc(input);
         }
 
-        private Vector3 GetInputDirection()
+        private void MarkInputAsChanged()
         {
-            float horizontal = m_MoveInput.x;
-            float vertical = m_MoveInput.y;
-
-            Vector3 direction = new Vector3(horizontal, 0, vertical);
-            return direction.normalized;
-        }
-
-        private Vector2 GetInputRotation()
-        {
-            return m_LookInput;
+            m_hasInputChanged = true;
         }
 
         [ServerRpc]
@@ -335,9 +334,14 @@ namespace MultiplayerShooter.Gameplay
             }
         }
 
-        public override void OnDestroy()
+        public override void OnNetworkDespawn()
         {
+            base.OnNetworkDespawn();
             m_InputActions?.Dispose();
+
+            // Unsubscribe from network variable callbacks
+            m_NetworkPosition.OnValueChanged -= OnServerPositionChanged;
+            m_NetworkRotation.OnValueChanged -= OnServerRotationChanged;
         }
     }
 }

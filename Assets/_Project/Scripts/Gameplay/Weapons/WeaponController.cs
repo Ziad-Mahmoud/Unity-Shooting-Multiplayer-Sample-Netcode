@@ -1,6 +1,9 @@
+using System;
+using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
-using System.Collections.Generic;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 
 namespace MultiplayerShooter.Gameplay
 {
@@ -21,6 +24,12 @@ namespace MultiplayerShooter.Gameplay
         [SerializeField] private GameObject m_ImpactEffectPrefab;
         [SerializeField] private AudioClip m_FireSound;
 
+        // Input System
+        private PlayerInputActions m_InputActions;
+        private bool m_FireInput;
+        private bool m_ReloadInput;
+        private bool m_hasInputChanged;
+
         // Network variables
         private NetworkVariable<bool> m_IsFiring = new NetworkVariable<bool>();
         private NetworkVariable<int> m_CurrentAmmo = new NetworkVariable<int>(30);
@@ -38,6 +47,82 @@ namespace MultiplayerShooter.Gameplay
             public Quaternion rotation;
         }
 
+        [Serializable]
+        private struct InputCommand : INetworkSerializable
+        {
+            public uint sequence;
+            public bool fire;
+            public bool reload;
+            public float timestamp;
+
+            public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+            {
+                serializer.SerializeValue(ref sequence);
+                serializer.SerializeValue(ref fire);
+                serializer.SerializeValue(ref reload);
+                serializer.SerializeValue(ref timestamp);
+            }
+        }
+
+        private void Awake()
+        {
+            // Initialize Input System
+            m_InputActions = new PlayerInputActions();
+        }
+
+        private void OnEnable()
+        {
+            if (!IsOwner) return;
+
+            // Enable input actions and subscribe to events
+            m_InputActions.Enable();
+
+            // Subscribe to input events
+            m_InputActions.Player.Fire.performed += OnFirePerformed;
+            m_InputActions.Player.Fire.canceled += OnFireCanceled;
+            m_InputActions.Player.Reload.performed += OnReloadPerformed;
+            m_InputActions.Player.Reload.canceled += OnReloadCanceled;
+        }
+
+        private void OnDisable()
+        {
+            if (!IsOwner) return;
+
+            // Unsubscribe from input events
+            m_InputActions.Player.Fire.performed -= OnFirePerformed;
+            m_InputActions.Player.Fire.canceled -= OnFireCanceled;
+            m_InputActions.Player.Reload.performed -= OnReloadPerformed;
+            m_InputActions.Player.Reload.canceled -= OnReloadCanceled;
+
+            // Disable input actions
+            m_InputActions.Disable();
+        }
+
+        // Input callbacks
+        private void OnFirePerformed(InputAction.CallbackContext context)
+        {
+            m_FireInput = true;
+            MarkInputAsChanged();
+        }
+
+        private void OnFireCanceled(InputAction.CallbackContext context)
+        {
+            m_FireInput = false;
+            MarkInputAsChanged();
+        }
+
+        private void OnReloadPerformed(InputAction.CallbackContext context)
+        {
+            m_ReloadInput = true;
+            MarkInputAsChanged();
+        }
+
+        private void OnReloadCanceled(InputAction.CallbackContext context)
+        {
+            m_ReloadInput = false;
+            MarkInputAsChanged();
+        }
+
         public override void OnNetworkSpawn()
         {
             m_AudioSource = GetComponent<AudioSource>();
@@ -53,9 +138,10 @@ namespace MultiplayerShooter.Gameplay
 
         void Update()
         {
-            if (IsOwner)
+            if (IsOwner && m_hasInputChanged)
             {
-                HandleInput();
+                HandleClientInput();
+                m_hasInputChanged = false;
             }
 
             if (IsServer)
@@ -64,14 +150,33 @@ namespace MultiplayerShooter.Gameplay
             }
         }
 
-        private void HandleInput()
+        public override void OnNetworkDespawn()
         {
-            if (Input.GetButton("Fire1"))
+            base.OnNetworkDespawn();
+            m_InputActions?.Dispose();
+        }
+
+        private void MarkInputAsChanged()
+        {
+            m_hasInputChanged = true;
+        }
+
+        private void HandleClientInput()
+        {
+            // Gather input
+            var input = new InputCommand
             {
-                RequestFireServerRpc(transform.position, transform.forward, Time.time);
+                fire = m_FireInput,
+                reload = m_ReloadInput,
+                timestamp = Time.time
+            };
+
+            if (input.fire)
+            {
+                RequestFireServerRpc(transform.position, transform.forward, input.timestamp);
             }
 
-            if (Input.GetKeyDown(KeyCode.R))
+            if (input.reload)
             {
                 RequestReloadServerRpc();
             }

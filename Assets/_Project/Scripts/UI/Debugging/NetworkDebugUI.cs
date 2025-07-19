@@ -60,7 +60,7 @@ namespace MultiplayerShooter.UI
             }
 
             // Configure position and style
-            //m_NetworkStatsMonitor.Position = RuntimeNetStatsMonitor.DisplayPosition.TopLeft;
+            m_NetworkStatsMonitor.Position.PositionTopToBottom = 0; // TopLeft
             m_NetworkStatsMonitor.MaxRefreshRate = 10f; // 10 updates per second
             m_NetworkStatsMonitor.Visible = m_ShowOnStart;
         }
