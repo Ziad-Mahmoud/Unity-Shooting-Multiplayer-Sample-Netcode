@@ -202,6 +202,20 @@ namespace MultiplayerShooter.Gameplay
             SendInputToServerRpc(input);
         }
 
+        private Vector3 GetInputDirection()
+        {
+            float horizontal = m_MoveInput.x;
+            float vertical = m_MoveInput.y;
+
+            Vector3 direction = new Vector3(horizontal, 0, vertical);
+            return direction.normalized;
+        }
+
+        private Vector2 GetInputRotation()
+        {
+            return m_LookInput;
+        }
+
         [ServerRpc]
         private void SendInputToServerRpc(InputCommand input)
         {

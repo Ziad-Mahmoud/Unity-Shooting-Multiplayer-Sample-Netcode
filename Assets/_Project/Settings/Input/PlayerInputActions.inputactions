@@ -1,9 +1,9 @@
 {
     "version": 1,
-    "name": "Player",
+    "name": "PlayerInputActions",
     "maps": [
         {
-            "name": "KeyboardMouse",
+            "name": "Player",
             "id": "e94cfbd2-b1dd-4180-8e26-081d733d96c6",
             "actions": [
                 {
@@ -165,8 +165,8 @@
                 },
                 {
                     "name": "",
-                    "id": "3e9acd79-6930-4f57-9428-a393afbeae1e",
-                    "path": "",
+                    "id": "8c661639-5c6b-4a48-adb4-93f0452ad3fb",
+                    "path": "<Mouse>/delta",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
@@ -177,7 +177,7 @@
                 {
                     "name": "",
                     "id": "43092b4a-a693-4ac3-9a09-178d7079b48f",
-                    "path": "",
+                    "path": "<Keyboard>/space",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
@@ -188,7 +188,18 @@
                 {
                     "name": "",
                     "id": "541478f9-d3ac-4054-af94-269d9e23bee0",
-                    "path": "",
+                    "path": "<Keyboard>/f",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Fire",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "5164d8cf-6d6b-4ac4-a3b1-e249212a8e4c",
+                    "path": "<Mouse>/leftButton",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
@@ -199,7 +210,7 @@
                 {
                     "name": "",
                     "id": "0e2570eb-975e-4eeb-aa12-68e038c4e5e5",
-                    "path": "",
+                    "path": "<Keyboard>/r",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
