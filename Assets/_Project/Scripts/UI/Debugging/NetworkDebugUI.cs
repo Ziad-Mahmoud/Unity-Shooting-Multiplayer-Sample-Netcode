@@ -1,7 +1,12 @@
+using TMPro; // TextMeshPro namespace
 using Unity.Multiplayer.Tools.NetStatsMonitor;
 using Unity.Netcode;
 using UnityEngine;
-using TMPro; // TextMeshPro namespace
+//using UnityEngine.InputSystem;
+//using System;
+//using System.Collections.Generic;
+//using UnityEngine.EventSystems;
+//using MultiplayerShooter.Gameplay;
 
 namespace MultiplayerShooter.UI
 {
@@ -22,8 +27,12 @@ namespace MultiplayerShooter.UI
 
         [Header("Settings")]
         [SerializeField] private bool m_ShowOnStart = true;
-        [SerializeField] private KeyCode m_ToggleKey = KeyCode.F1;
         [SerializeField] private float m_UpdateInterval = 0.1f; // Update UI every 100ms
+
+        /// <summary>
+        /// Input System
+        /// </summary>
+        //private PlayerInputActions m_InputActions;
 
         private RuntimeNetStatsMonitor m_NetworkStatsMonitor;
         private bool m_IsVisible;
@@ -37,10 +46,10 @@ namespace MultiplayerShooter.UI
 
         void Update()
         {
-            if (Input.GetKeyDown(m_ToggleKey))
-            {
-                ToggleDebugUI();
-            }
+            //if (Input.GetKeyDown(m_ToggleKey))
+            //{
+            //    ToggleDebugUI();
+            //}
 
             if (m_IsVisible && Time.time - m_LastUpdateTime > m_UpdateInterval)
             {
@@ -60,7 +69,11 @@ namespace MultiplayerShooter.UI
             }
 
             // Configure position and style
-            m_NetworkStatsMonitor.Position.PositionTopToBottom = 0; // TopLeft
+            m_NetworkStatsMonitor.Position = new PositionConfiguration
+            {
+                PositionTopToBottom = 0f, // 0 = top, 1 = bottom
+                PositionLeftToRight = 0f  // 0 = left, 1 = right
+            };
             m_NetworkStatsMonitor.MaxRefreshRate = 10f; // 10 updates per second
             m_NetworkStatsMonitor.Visible = m_ShowOnStart;
         }
