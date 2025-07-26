@@ -1,6 +1,5 @@
 using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace MultiplayerShooter.Gameplay
 {
@@ -12,16 +11,12 @@ namespace MultiplayerShooter.Gameplay
     {
         [Header("Camera Settings")]
         [SerializeField] private Transform m_CameraMount;
-        [SerializeField] private float m_MouseSensitivity = 2f;
+        //[SerializeField] private float m_MouseSensitivity = 2f; // Not used directly here, but can be used in PlayerController for mouse input
         [SerializeField] private float m_LookXLimit = 80f;
         [SerializeField] private Vector3 m_CameraOffset = new Vector3(0, 1.6f, 0);
 
         [Header("References")]
         [SerializeField] private Camera m_Camera;
-
-        private float m_RotationX = 0;
-        private PlayerInputActions m_InputActions;
-        private Vector2 m_LookInput;
 
         private void Awake()
         {
@@ -31,7 +26,7 @@ namespace MultiplayerShooter.Gameplay
                 m_Camera = Camera.main;
                 if (m_Camera == null)
                 {
-                    GameObject cameraObj = new GameObject("PlayerCamera");
+                    GameObject cameraObj = new ("PlayerCamera");
                     m_Camera = cameraObj.AddComponent<Camera>();
                     cameraObj.AddComponent<AudioListener>();
                 }
@@ -40,13 +35,11 @@ namespace MultiplayerShooter.Gameplay
             // Create camera mount if not assigned
             if (m_CameraMount == null)
             {
-                GameObject mountObj = new GameObject("CameraMount");
+                GameObject mountObj = new ("CameraMount");
                 mountObj.transform.SetParent(transform);
                 mountObj.transform.localPosition = m_CameraOffset;
                 m_CameraMount = mountObj.transform;
             }
-
-            m_InputActions = new PlayerInputActions();
         }
 
         public override void OnNetworkSpawn()
@@ -66,44 +59,14 @@ namespace MultiplayerShooter.Gameplay
             SetupLocalPlayerCamera();
 
             // Lock cursor
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
-        }
-
-        private void OnEnable()
-        {
-            if (!IsOwner) return;
-
-            m_InputActions.Enable();
-            m_InputActions.Player.Look.performed += OnLookPerformed;
-            m_InputActions.Player.Look.canceled += OnLookCanceled;
-        }
-
-        private void OnDisable()
-        {
-            if (!IsOwner) return;
-
-            m_InputActions.Player.Look.performed -= OnLookPerformed;
-            m_InputActions.Player.Look.canceled -= OnLookCanceled;
-            m_InputActions.Disable();
-        }
-
-        private void OnLookPerformed(InputAction.CallbackContext context)
-        {
-            m_LookInput = context.ReadValue<Vector2>();
-        }
-
-        private void OnLookCanceled(InputAction.CallbackContext context)
-        {
-            m_LookInput = Vector2.zero;
+            SetCursorLocked(true);
         }
 
         private void SetupLocalPlayerCamera()
         {
             // Parent camera to mount point
             m_Camera.transform.SetParent(m_CameraMount);
-            m_Camera.transform.localPosition = Vector3.zero;
-            m_Camera.transform.localRotation = Quaternion.identity;
+            m_Camera.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
 
             // Ensure camera is active
             m_Camera.gameObject.SetActive(true);
@@ -118,22 +81,13 @@ namespace MultiplayerShooter.Gameplay
         {
             if (!IsOwner) return;
 
-            HandleMouseLook();
-        }
+            // Get rotation from PlayerController instead
+            var playerController = GetComponent<PlayerController>();
+            float rotationY = playerController.GetLookRotationY();
 
-        private void HandleMouseLook()
-        {
-            // Apply mouse sensitivity and delta time for frame-independent movement
-            float mouseX = m_LookInput.x * m_MouseSensitivity;
-            float mouseY = m_LookInput.y * m_MouseSensitivity;
-
-            // Rotate player body horizontally
-            transform.Rotate(Vector3.up * mouseX);
-
-            // Rotate camera vertically
-            m_RotationX -= mouseY;
-            m_RotationX = Mathf.Clamp(m_RotationX, -m_LookXLimit, m_LookXLimit);
-            m_CameraMount.localRotation = Quaternion.Euler(m_RotationX, 0, 0);
+            // Apply only vertical rotation here
+            rotationY = Mathf.Clamp(rotationY, -m_LookXLimit, m_LookXLimit);
+            m_CameraMount.localRotation = Quaternion.Euler(rotationY, 0, 0);
         }
 
         public override void OnNetworkDespawn()

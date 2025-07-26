@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Unity.Netcode;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -36,7 +37,19 @@ namespace MultiplayerShooter.Gameplay
         private Vector2 m_MoveInput;
         private Vector2 m_LookInput;
         private bool m_JumpInput;
-        private bool m_hasInputChanged;
+
+        [Flags]
+        enum ButtonFlags : byte
+        {
+            None = 0,
+            Jump = 1 << 0,
+            Fire = 1 << 1,
+            Reload = 1 << 2,
+            Look = 1 << 3,
+            Move = 1 << 4
+        }
+
+        byte buttonStates = 0;
 
         // Components
         private Rigidbody m_Rigidbody;
@@ -66,10 +79,8 @@ namespace MultiplayerShooter.Gameplay
             m_InputActions = new PlayerInputActions();
         }
 
-        private void OnEnable()
+        private void EnableInputs()
         {
-            if (!IsOwner) return;
-
             // Enable input actions and subscribe to events
             m_InputActions.Enable();
 
@@ -102,41 +113,44 @@ namespace MultiplayerShooter.Gameplay
         private void OnMovePerformed(InputAction.CallbackContext context)
         {
             m_MoveInput = context.ReadValue<Vector2>();
-            MarkInputAsChanged();
+            buttonStates |= (byte)ButtonFlags.Move;
+            Debug.Log($"Move Input Performed: {m_LookInput}, Button States {buttonStates}");
         }
 
         private void OnMoveCanceled(InputAction.CallbackContext context)
         {
             m_MoveInput = Vector2.zero;
-            MarkInputAsChanged();
+            buttonStates |= (byte)ButtonFlags.Move;
         }
 
         private void OnLookPerformed(InputAction.CallbackContext context)
         {
             m_LookInput = context.ReadValue<Vector2>();
-            MarkInputAsChanged();
+            buttonStates |= (byte)ButtonFlags.Look;
         }
 
         private void OnLookCanceled(InputAction.CallbackContext context)
         {
             m_LookInput = Vector2.zero;
-            MarkInputAsChanged();
+            buttonStates |= (byte)ButtonFlags.Look;
         }
 
         private void OnJumpPerformed(InputAction.CallbackContext context)
         {
             m_JumpInput = true;
-            MarkInputAsChanged();
+            buttonStates |= (byte)ButtonFlags.Jump;
         }
 
         private void OnJumpCanceled(InputAction.CallbackContext context)
         {
             m_JumpInput = false;
-            MarkInputAsChanged();
+            buttonStates |= (byte)ButtonFlags.Jump;
         }
 
         public override void OnNetworkSpawn()
         {
+            EnableInputs();
+
             m_Rigidbody = GetComponent<Rigidbody>();
             m_Collider = GetComponent<Collider>();
 
@@ -157,10 +171,10 @@ namespace MultiplayerShooter.Gameplay
 
         void Update()
         {
-            if (IsOwner && m_hasInputChanged)
+            if (IsOwner && buttonStates != (byte)ButtonFlags.None)
             {
                 HandleClientInput();
-                m_hasInputChanged = false; // Reset input change flag
+                buttonStates = (byte)ButtonFlags.None; // Reset input change flag
             }
         }
 
@@ -210,11 +224,6 @@ namespace MultiplayerShooter.Gameplay
             SendInputToServerRpc(input);
         }
 
-        private void MarkInputAsChanged()
-        {
-            m_hasInputChanged = true;
-        }
-
         [ServerRpc]
         private void SendInputToServerRpc(InputCommand input)
         {
@@ -248,6 +257,9 @@ namespace MultiplayerShooter.Gameplay
 
             return true;
         }
+
+        // expose look rotation for camera
+        public float GetLookRotationY() => m_LookInput.x * m_RotationSpeed;
 
         private void ApplyMovement(InputCommand input)
         {
@@ -296,6 +308,7 @@ namespace MultiplayerShooter.Gameplay
                     );
                 }
             }
+            Debug.Log($"Jump {input.jump} && Ground check {CheckGrounded()}");
         }
 
         private bool CheckGrounded()
@@ -320,7 +333,7 @@ namespace MultiplayerShooter.Gameplay
 
                 // Here you would typically replay stored inputs
                 // For simplicity, we'll just accept the server position
-                Debug.Log($"Client position reconciled. Distance: {distance}");
+                //Debug.Log($"Client position reconciled. Distance: {distance}");
             }
         }
 

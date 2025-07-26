@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
 namespace MultiplayerShooter.Gameplay
@@ -173,7 +172,10 @@ namespace MultiplayerShooter.Gameplay
 
             if (input.fire)
             {
-                RequestFireServerRpc(transform.position, transform.forward, input.timestamp);
+                var camera = GetComponent<PlayerCameraController>();
+                Vector3 firePos = camera.GetCameraPosition();
+                Vector3 fireDir = camera.GetCameraForward();
+                RequestFireServerRpc(firePos, fireDir, input.timestamp);
             }
 
             if (input.reload)
