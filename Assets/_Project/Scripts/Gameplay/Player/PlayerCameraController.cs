@@ -83,11 +83,12 @@ namespace MultiplayerShooter.Gameplay
 
             // Get rotation from PlayerController instead
             var playerController = GetComponent<PlayerController>();
-            float rotationY = playerController.GetLookRotationY();
+            //float rotationY = playerController.GetLookRotationY();
 
             // Apply only vertical rotation here
-            rotationY = Mathf.Clamp(rotationY, -m_LookXLimit, m_LookXLimit);
-            m_CameraMount.localRotation = Quaternion.Euler(rotationY, 0, 0);
+            //rotationY = Mathf.Clamp(rotationY, -m_LookXLimit, m_LookXLimit);
+            //float deltaRotationY = rotationY * Time.deltaTime;
+            //m_CameraMount.localRotation = Quaternion.Euler(deltaRotationY, 0, 0);
         }
 
         public override void OnNetworkDespawn()
