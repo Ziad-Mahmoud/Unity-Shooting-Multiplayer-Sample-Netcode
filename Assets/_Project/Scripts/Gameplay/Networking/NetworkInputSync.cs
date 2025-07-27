@@ -27,7 +27,7 @@ namespace MultiplayerShooter.Gameplay.Networking
         }
 
         // Events
-        public event System.Action<InputPayload> OnInputReceived;
+        public event Action<InputPayload> OnInputReceived;
 
         // State tracking
         private bool m_HasPendingInput;

@@ -15,7 +15,7 @@ namespace MultiplayerShooter.Gameplay.Weapons
         [SerializeField] private LayerMask m_TargetLayers = -1;
 
         // Network variables
-        private NetworkVariable<int> m_CurrentAmmo = new NetworkVariable<int>(30);
+        private readonly NetworkVariable<int> m_CurrentAmmo = new (30);
 
         // State
         private float m_LastFireTime;
@@ -53,8 +53,7 @@ namespace MultiplayerShooter.Gameplay.Weapons
             m_CurrentAmmo.Value--;
 
             // Perform hit detection
-            RaycastHit hit;
-            if (Physics.Raycast(origin, direction, out hit, m_Range, m_TargetLayers))
+            if (Physics.Raycast(origin, direction, out RaycastHit hit, m_Range, m_TargetLayers))
             {
                 var target = hit.collider.GetComponent<NetworkObject>();
                 if (target != null && target != NetworkObject)

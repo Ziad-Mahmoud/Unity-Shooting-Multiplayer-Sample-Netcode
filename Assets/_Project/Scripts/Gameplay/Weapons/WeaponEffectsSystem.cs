@@ -29,6 +29,13 @@ namespace MultiplayerShooter.Gameplay.Weapons
             PlayFireSound();
         }
 
+        public void PlayImpactEffects(object[] parameters)
+        {
+            Vector3 position = (Vector3)parameters[0];
+            Vector3 normal = (Vector3)parameters[1];
+            PlayImpactEffects(position, normal);
+        }
+
         public void PlayImpactEffects(Vector3 position, Vector3 normal)
         {
             if (m_ImpactEffectPrefab != null)

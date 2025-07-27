@@ -23,8 +23,8 @@ namespace MultiplayerShooter.Gameplay
         private NetworkInputSync m_NetworkInput;
 
         // Network variables
-        private NetworkVariable<Vector3> m_NetworkPosition = new NetworkVariable<Vector3>();
-        private NetworkVariable<Quaternion> m_NetworkRotation = new NetworkVariable<Quaternion>();
+        private readonly NetworkVariable<Vector3> m_NetworkPosition = new();
+        private readonly NetworkVariable<Quaternion> m_NetworkRotation = new();
 
         private void Awake()
         {
@@ -71,7 +71,7 @@ namespace MultiplayerShooter.Gameplay
 
         private void HandleMoveInput(Vector2 input)
         {
-            Vector3 moveDir = new Vector3(input.x, 0, input.y);
+            Vector3 moveDir = new (input.x, 0, input.y);
             m_NetworkInput.SendInput(moveDir, m_InputHandler.LookInput.x, m_InputHandler.JumpInput);
         }
 
@@ -84,7 +84,7 @@ namespace MultiplayerShooter.Gameplay
 
         private void HandleJumpInput(bool jump)
         {
-            Vector3 moveDir = new Vector3(m_InputHandler.MoveInput.x, 0, m_InputHandler.MoveInput.y);
+            Vector3 moveDir = new (m_InputHandler.MoveInput.x, 0, m_InputHandler.MoveInput.y);
             m_NetworkInput.SendInput(moveDir, m_InputHandler.LookInput.x, jump);
         }
 

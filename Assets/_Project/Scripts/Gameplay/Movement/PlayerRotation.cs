@@ -27,7 +27,7 @@ namespace MultiplayerShooter.Gameplay.Movement
             if (!IsOwner) return;
 
             HorizontalRotation = amount * m_RotationSpeed;
-            transform.Rotate(Vector3.up * HorizontalRotation * Time.deltaTime);
+            transform.Rotate(HorizontalRotation * Time.deltaTime * Vector3.up);
         }
 
         public void RotateVertical(float amount)
