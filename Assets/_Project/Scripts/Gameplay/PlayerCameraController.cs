@@ -29,7 +29,7 @@ namespace MultiplayerShooter.Gameplay
                 m_Camera = Camera.main;
                 if (m_Camera == null)
                 {
-                    GameObject cameraObj = new GameObject("PlayerCamera");
+                    GameObject cameraObj = new ("PlayerCamera");
                     m_Camera = cameraObj.AddComponent<Camera>();
                     cameraObj.AddComponent<AudioListener>();
                 }
