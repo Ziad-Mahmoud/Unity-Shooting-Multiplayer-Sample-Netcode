@@ -7,6 +7,8 @@ namespace MultiplayerShooter.Gameplay.Weapons
     /// </summary>
     public class WeaponEffectsSystem : MonoBehaviour
     {
+        private PlayerCameraController m_CameraController;
+
         [Header("Visual Effects")]
         [SerializeField] private GameObject m_MuzzleFlashPrefab;
         [SerializeField] private GameObject m_ImpactEffectPrefab;
@@ -16,17 +18,21 @@ namespace MultiplayerShooter.Gameplay.Weapons
         [SerializeField] private AudioSource m_AudioSource;
         [SerializeField] private AudioClip m_FireSound;
         [SerializeField] private AudioClip m_ReloadSound;
-
         private void Awake()
         {
             if (m_AudioSource == null)
                 m_AudioSource = GetComponent<AudioSource>();
+
+            m_CameraController = GetComponentInParent<PlayerCameraController>();
         }
 
         public void PlayFireEffects()
         {
             PlayMuzzleFlash();
             PlayFireSound();
+
+            // Trigger camera shake
+            m_CameraController?.TriggerCameraShake();
         }
 
         public void PlayImpactEffects(object[] parameters)

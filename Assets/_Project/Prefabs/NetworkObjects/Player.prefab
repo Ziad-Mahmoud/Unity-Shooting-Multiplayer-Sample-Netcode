@@ -25,7 +25,7 @@ Transform:
   m_GameObject: {fileID: 1449327889666397980}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.6868, z: 0.114}
+  m_LocalPosition: {x: 0, y: 1.6868, z: -1.7}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -120,7 +120,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 1102294744
+  GlobalObjectIdHash: 2335352017
   InScenePlacedSourceGlobalObjectIdHash: 2335352017
   DeferredDespawnTick: 0
   Ownership: 1
@@ -293,11 +293,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  m_CameraMount: {fileID: 3163022505328336259}
+  m_VirtualCamera: {fileID: 0}
+  m_CameraTarget: {fileID: 3163022505328336259}
+  m_CameraOffset: {x: 0, y: 1.6, z: 0}
   m_MouseSensitivity: 2
   m_LookXLimit: 80
-  m_CameraOffset: {x: 0, y: 1.6, z: 0}
-  m_Camera: {fileID: 0}
+  m_InvertY: 0
+  m_FireShakeAmplitude: 0.5
+  m_FireShakeDuration: 0.1
 --- !u!54 &-7418779311612176257
 Rigidbody:
   m_ObjectHideFlags: 0
